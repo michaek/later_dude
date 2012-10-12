@@ -280,5 +280,27 @@ class CalendarTest < ActiveSupport::TestCase
     assert_equal calendar_html1, calendar_html2
   end
 
+  test "allows overriding of html tags" do
+    tags = {
+            :month => :div,
+            :heading => :header,
+            :label => :label,
+            :grid => :section,
+            :week => :div,
+            :day => :article,
+          }
+    calendar = LaterDude::Calendar.new(2012, 7, html_tags: tags, :next_month => "&raquo;")
+    html = calendar.to_html
+    # There should be no colspan on tags other than TH and TD.
+    assert_no_match %r(colspan=), html
+    # There should be no scope on tags other than TH.
+    assert_no_match %r(scope=), html
+    # Each of the tags we define should be found in the output.
+    tags.each do |key, tag|
+      assert_match /<#{tag}/, html
+    end
+    assert_equal html, 'blah'
+  end
+
   # TODO: Should I do "real" output testing despite the good coverage of output-related methods? Testing HTML is tedious ...
 end

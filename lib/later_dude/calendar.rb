@@ -38,8 +38,8 @@ module LaterDude
 
     def to_html(&block)
       @block = block if block_given?
-      content_tag(:table, :class => "#{@options[:calendar_class]}") do
-        content_tag(:thead, "#{show_month_names}#{show_day_names}".html_safe) + content_tag(:tbody, show_days)
+      content_tag(@options[:html_tags][:month], :class => "#{@options[:calendar_class]}") do
+        content_tag(@options[:html_tags][:heading], "#{show_month_names}#{show_day_names}".html_safe) + content_tag(@options[:html_tags][:grid], show_days, :class => 'days')
       end
     end
     
@@ -53,7 +53,7 @@ module LaterDude
 
     private
     def show_days
-      content_tag(:tr, "#{show_previous_month}#{show_current_month}#{show_following_month}".html_safe)
+      content_tag(@options[:html_tags][:week], "#{show_previous_month}#{show_current_month}#{show_following_month}".html_safe, :class => 'week')
     end
 
     def show_previous_month
@@ -97,11 +97,12 @@ module LaterDude
         content = day.day
       end
 
-      content = content_tag(:td, content.to_s.html_safe, options)
+      content = content_tag(@options[:html_tags][:day], content.to_s.html_safe, options)
 
       # close table row at the end of a week and start a new one
       # opening and closing tag for the first and last week are included in #show_days
-      content << "</tr><tr>".html_safe if day < @days.last && day.wday == last_day_of_week
+      tagname = @options[:html_tags][:week].to_s
+      content << "</#{tagname}><#{tagname} class=\"week\">".html_safe if day < @days.last && day.wday == last_day_of_week
       content
     end
 
@@ -114,7 +115,7 @@ module LaterDude
     def show_month_names
       return if @options[:hide_month_name]
 
-      content_tag(:tr, "#{previous_month}#{current_month}#{next_month}".html_safe, :class => 'month_names')
+      content_tag(@options[:html_tags][:week], "#{previous_month}#{current_month}#{next_month}".html_safe, :class => 'month_names')
     end
 
     # @options[:previous_month] can either be a single value or an array containing two values. For a single value, the
@@ -143,8 +144,9 @@ module LaterDude
 
     def show_month(month, format, options={})
       options[:colspan] ||= 2
+      options[:colspan] = nil unless [:tr, :th].include? @options[:html_tags][:label]
 
-      content_tag(:th, :colspan => options[:colspan], :class => "#{options[:class]} #{Date::MONTHNAMES[month.month].downcase}") do
+      content_tag(@options[:html_tags][:label], :colspan => options[:colspan], :class => "#{options[:class]} #{Date::MONTHNAMES[month.month].downcase}") do
         if format.kind_of?(Array) && format.size == 2
           text = I18n.localize(month, :format => format.first.to_s).html_safe
           format.last.respond_to?(:call) ? link_to(text, format.last.call(month)) : text
@@ -168,9 +170,10 @@ module LaterDude
 
     def show_day_names
       return if @options[:hide_day_names]
-      content_tag(:tr, :class => 'day_names') do
+      content_tag(@options[:html_tags][:week], :class => 'day_names') do
         apply_first_day_of_week(day_names).inject('') do |output, day|
-          output << content_tag(:th, include_day_abbreviation(day), :scope => 'col', :class => Date::DAYNAMES[day_names.index(day)].downcase)
+          scope = @options[:html_tags][:label] == :th ? 'col' : nil
+          output << content_tag(@options[:html_tags][:label], include_day_abbreviation(day), :scope => scope, :class => Date::DAYNAMES[day_names.index(day)].downcase)
         end.html_safe
       end
     end
@@ -212,7 +215,15 @@ module LaterDude
           :next_month => false,
           :previous_month => false,
           :next_and_previous_month => false,
-          :yield_surrounding_days => false
+          :yield_surrounding_days => false,
+          :html_tags => {
+            :month => :table,
+            :heading => :thead,
+            :label => :th,
+            :week => :tr,
+            :day => :td,
+            :grid => :tbody,
+          }
         }
       end
     end
