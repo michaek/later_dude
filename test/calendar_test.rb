@@ -299,7 +299,6 @@ class CalendarTest < ActiveSupport::TestCase
     tags.each do |key, tag|
       assert_match /<#{tag}/, html
     end
-    assert_equal html, 'blah'
   end
 
   # TODO: Should I do "real" output testing despite the good coverage of output-related methods? Testing HTML is tedious ...
